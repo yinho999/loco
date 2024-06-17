@@ -22,17 +22,21 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["auth_jwt", "cli", "with-db"]
+default = ["auth_jwt", "cli", "with-db", ]
 auth_jwt = ["dep:jsonwebtoken"]
 cli = ["dep:clap"]
 testing = ["dep:axum-test"]
-with-db = ["dep:sea-orm", "dep:sea-orm-migration"]
 channels = ["dep:socketioxide"]
 # Storage features
 all_storage = ["storage_aws_s3", "storage_azure", "storage_gcp"]
 storage_aws_s3 = ["object_store/aws"]
 storage_azure = ["object_store/azure"]
 storage_gcp = ["object_store/gcp"]
+# Database features
+with-db = ["dep:sea-orm", "dep:sea-orm-migration"]
+sqlx-postgres = ["with-db", "sea-orm/sqlx-postgres"]
+sqlx-sqlite = ["with-db", "sea-orm/sqlx-sqlite"]
+sqlx-mysql = ["with-db", "sea-orm/sqlx-mysql"]
 
 [dependencies]
 
@@ -45,10 +49,10 @@ colored = "2"
 
 
 sea-orm = { version = "1.0.0-rc.1", features = [
-  "sqlx-postgres",        # `DATABASE_DRIVER` feature
-  "sqlx-sqlite",
-  "runtime-tokio-rustls",
-  "macros",
+    "sqlx-postgres", # `DATABASE_DRIVER` feature
+    "sqlx-sqlite",
+    "runtime-tokio-rustls",
+    "macros",
 ], optional = true }
 
 tokio = { version = "1.33.0", default-features = false }
@@ -72,10 +76,10 @@ fs-err = "2.11.0"
 # mailer
 tera = "1.19.1"
 lettre = { version = "0.11.4", default-features = false, features = [
-  "builder",
-  "hostname",
-  "smtp-transport",
-  "tokio1-rustls-tls",
+    "builder",
+    "hostname",
+    "smtp-transport",
+    "tokio1-rustls-tls",
 ] }
 include_dir = "0.7.3"
 thiserror = "1"
@@ -124,26 +128,26 @@ async-trait = { version = "0.1.74" }
 axum = { version = "0.7.1", features = ["macros"] }
 tower = "0.4"
 tower-http = { version = "0.5.0", features = [
-  "trace",
-  "catch-panic",
-  "timeout",
-  "add-extension",
-  "cors",
-  "fs",
-  "set-header",
-  "compression-full",
+    "trace",
+    "catch-panic",
+    "timeout",
+    "add-extension",
+    "cors",
+    "fs",
+    "set-header",
+    "compression-full",
 ] }
 
 [dependencies.sea-orm-migration]
 optional = true
 version = "1.0.0-rc.1"
 features = [
-  # Enable at least one `ASYNC_RUNTIME` and `DATABASE_DRIVER` feature if you want to run migration via CLI.
-  # View the list of supported features at https://www.sea-ql.org/SeaORM/docs/install-and-config/database-and-async-runtime.
-  # e.g.
-  "runtime-tokio-rustls", # `ASYNC_RUNTIME` feature
-  "sqlx-postgres",        # `DATABASE_DRIVER` feature
-  "sqlx-sqlite",
+    # Enable at least one `ASYNC_RUNTIME` and `DATABASE_DRIVER` feature if you want to run migration via CLI.
+    # View the list of supported features at https://www.sea-ql.org/SeaORM/docs/install-and-config/database-and-async-runtime.
+    # e.g.
+    "runtime-tokio-rustls", # `ASYNC_RUNTIME` feature
+    "sqlx-postgres", # `DATABASE_DRIVER` feature
+    "sqlx-sqlite",
 ]
 
 [package.metadata.docs.rs]

@@ -1,5 +1,8 @@
+#[cfg(feature = "sqlx-postgres")]
+use sea_orm::sea_query::extension::postgres::PgExpr;
 use sea_orm::{
-    sea_query::{IntoCondition, Order},
+    prelude::Expr,
+    sea_query::{Func, IntoCondition, Order},
     ColumnTrait, Condition, Value,
 };
 use serde::{Deserialize, Serialize};
@@ -315,6 +318,57 @@ impl ConditionBuilder {
     #[must_use]
     pub fn like<T: ColumnTrait, V: Into<String>>(self, col: T, a: V) -> Self {
         with(self.condition.add(col.like(a)))
+    }
+    /// where condition the given column ilike given values
+    /// value
+    ///
+    /// # Examples
+    /// ```
+    /// use loco_rs::tests_cfg::db::*;
+    /// use sea_orm::{EntityTrait, QueryFilter, QuerySelect, QueryTrait};
+    /// use loco_rs::prelude::*;
+    ///
+    /// let query_str = test_db::Entity::find()
+    ///         .select_only()
+    ///         .column(test_db::Column::Id)
+    ///         .filter(query::condition().ilike(test_db::Column::Name, "%Lo").build())
+    ///         .build(sea_orm::DatabaseBackend::Postgres)
+    ///         .to_string();
+    ///
+    /// assert_eq!(
+    ///    query_str,
+    ///   "SELECT \"loco\".\"id\" FROM \"loco\" WHERE \"loco\".\"name\" ILIKE '%Lo'"
+    /// );
+    /// ```
+    #[must_use]
+    pub fn ilike<T: ColumnTrait, V: Into<String>>(self, col: T, a: V) -> Self {
+        cfg_if::cfg_if! {
+        if #[cfg(feature = "sqlx-postgres")] {
+                with(
+                    self.condition.add(
+                        Expr::col((col.entity_name(), col))
+                            .ilike(a)
+                            .into_condition(),
+                    ),
+                )
+            } else if #[cfg(any(feature = "sqlx-mysql", feature="sqlx-sqlite"))] {
+                with(
+                    self.condition.add(
+                        Expr::expr(Func::lower(Expr::col(col)))
+                            .like(a.into().to_lowercase())
+                            .into_condition(),
+                    ),
+                )
+            } else {
+                with(
+                    self.condition.add(
+                        Expr::expr(Func::lower(Expr::col(col)))
+                            .like(a.into().to_lowercase())
+                            .into_condition(),
+                    ),
+                )
+            }
+        }
     }
 
     /// where condition the given column not like given values
@@ -718,6 +772,54 @@ mod tests {
         assert_eq!(
             query_str,
             "SELECT \"loco\".\"id\" FROM \"loco\" WHERE \"loco\".\"name\" LIKE '%lo'"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "sqlx-postgres")]
+    fn postgres_condition_ilike() {
+        let query_str = test_db::Entity::find()
+            .select_only()
+            .column(test_db::Column::Id)
+            .filter(condition().ilike(test_db::Column::Name, "%Lo").build())
+            .build(sea_orm::DatabaseBackend::Postgres)
+            .to_string();
+
+        assert_eq!(
+            query_str,
+            "SELECT \"loco\".\"id\" FROM \"loco\" WHERE \"loco\".\"name\" ILIKE '%Lo'"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "sqlx-mysql")]
+    fn mysql_condition_ilike() {
+        let query_str = test_db::Entity::find()
+            .select_only()
+            .column(test_db::Column::Id)
+            .filter(condition().ilike(test_db::Column::Name, "%Lo").build())
+            .build(sea_orm::DatabaseBackend::MySql)
+            .to_string();
+
+        assert_eq!(
+            query_str,
+            "SELECT `loco`.`id` FROM `loco` WHERE LOWER(`name`) LIKE '%lo'"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "sqlx-sqlite")]
+    fn sqlite_condition_ilike() {
+        let query_str = test_db::Entity::find()
+            .select_only()
+            .column(test_db::Column::Id)
+            .filter(condition().ilike(test_db::Column::Name, "%Lo").build())
+            .build(sea_orm::DatabaseBackend::Sqlite)
+            .to_string();
+
+        assert_eq!(
+            query_str,
+            "SELECT \"loco\".\"id\" FROM \"loco\" WHERE LOWER(\"name\") LIKE '%lo'"
         );
     }
 
